@@ -24,10 +24,12 @@
       <UpToDateCheckInput Remove="Style\Styles1.axaml" />
     </ItemGroup>
     <Target Name="CopyNeutronBinary" AfterTargets="Build">
-        <Copy>
-            SourcesFiles="$(SolutionDir)NeutronRuntime\neutron.exe"
+        <ItemGroup>
+            <NeutronBinary Include="$(SolutionDir)NeutronRuntime\neutron.exe" />
+        </ItemGroup>
+        <Copy
+            SourceFiles="@(NeutronBinary)"
             DestinationFolder="$(OutDir)"
-            SkipUnchangedFiles="true"
-        </Copy>
+            SkipUnchangedFiles="true" />
     </Target>
 </Project>
