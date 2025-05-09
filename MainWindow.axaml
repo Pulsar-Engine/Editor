@@ -12,9 +12,9 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_Open..."/>
+                <MenuItem Header="_Open..." Click="OnOpenFileClick"/>
                 <Separator/>
-                <MenuItem Header="_Exit"/>
+                <MenuItem Header="_Exit" Click="OnExitClick"/>
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="Copy"/>

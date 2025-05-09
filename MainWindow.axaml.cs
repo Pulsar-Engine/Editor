@@ -35,46 +35,47 @@ namespace Editeur
         }
 
         private void ExecuteCommand()
+{
+    string filePath = ConsoleInput.Text.Trim();
+    if (string.IsNullOrWhiteSpace(filePath))
+        return;
+
+    ConsoleInput.Text = "";
+    ConsoleOutput.Text += "> Running: " + filePath + Environment.NewLine;
+
+    try
+    {
+        ProcessStartInfo psi = new ProcessStartInfo
         {
-            string command = ConsoleInput.Text.Trim();
-            if (string.IsNullOrWhiteSpace(command))
-                return;
+            FileName = "neutron", // ton binaire Rust
+            Arguments = filePath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
 
-            ConsoleInput.Text = "";
-            ConsoleOutput.Text += "> " + command + Environment.NewLine;
+        using (Process process = new Process { StartInfo = psi })
+        {
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
 
-            try
-            {
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe", // Utilise "bash" sur Linux/macOS si nécessaire
-                    Arguments = "/C " + command,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+            if (!string.IsNullOrWhiteSpace(output))
+                ConsoleOutput.Text += output + Environment.NewLine;
 
-                using (Process process = new Process { StartInfo = psi })
-                {
-                    process.Start();
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-
-                    if (!string.IsNullOrWhiteSpace(output))
-                        ConsoleOutput.Text += output + Environment.NewLine;
-
-                    if (!string.IsNullOrWhiteSpace(error))
-                        ConsoleOutput.Text += "Erreur : " + error + Environment.NewLine;
-                }
-            }
-            catch (Exception ex)
-            {
-                ConsoleOutput.Text += "Erreur d'exécution : " + ex.Message + Environment.NewLine;
-            }
-
-            ScrollToBottom();
+            if (!string.IsNullOrWhiteSpace(error))
+                ConsoleOutput.Text += "Erreur : " + error + Environment.NewLine;
         }
+    }
+    catch (Exception ex)
+    {
+        ConsoleOutput.Text += "Erreur d'exécution : " + ex.Message + Environment.NewLine;
+    }
+
+    ScrollToBottom();
+}
+
     }
 }
