@@ -40,21 +40,31 @@
                     <TabControl>
                         <TabItem Header="Console">
                             <Grid RowDefinitions="*,Auto">
-                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                                    <TextBlock x:Name="ConsoleOutput" Text="Console output here..."
-                                        Margin="10" TextWrapping="Wrap" />
-                                </ScrollViewer>
+                                <!-- TextBox sélectionnable en lecture seule -->
+                                <TextBox x:Name="ConsoleOutput"
+                                         Grid.Row="0"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         Background="Black"
+                                         Foreground="White"
+                                         Margin="10"
+                                         FontSize="12"
+                                         TextWrapping="Wrap" />
+                        
                                 <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />  <!-- La TextBox prend toute la
-                                        place dispo -->
-                                        <ColumnDefinition Width="Auto" /> <!-- Le bouton garde une
-                                        taille fixe -->
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" x:Name="ConsoleInput"
-                                        KeyDown="OnConsoleInputKeyDown" />
-                                    <Button Grid.Column="1" Content="Exécuter"
-                                        Click="OnConsoleCommandSubmit" Margin="5,0,0,0" />
+                                             KeyDown="OnConsoleInputKeyDown" />
+                                    <Button Grid.Column="1"
+                                            Content="Exécuter"
+                                            Click="OnConsoleCommandSubmit"
+                                            Margin="5,0,0,0" />
                                 </Grid>
                             </Grid>
                         </TabItem>
