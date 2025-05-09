@@ -1,0 +1,92 @@
+<Window xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:editeur="clr-namespace:Editeur"
+    mc:Ignorable="d"
+    x:Class="Editeur.MainWindow"
+    Title="Éditeur"
+    Width="800"
+    Height="450">
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." Click="OnOpenFileClicked" />
+                <Separator />
+                <MenuItem Header="_Exit" Click="OnExitClicked" />
+            </MenuItem>
+
+            <MenuItem Header="_Edit">
+                <MenuItem Header="Copy" />
+                <MenuItem Header="Paste" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Grid principale avec 2 colonnes -->
+        <Grid ColumnDefinitions="3*,Auto,1*">
+
+            <!-- Première colonne (75% de largeur) avec 2 lignes -->
+            <Grid Grid.Column="0" RowDefinitions="3*,Auto,2*">
+                <!-- Carré bleu (partie supérieure) -->
+                <editeur:GameViewHost Grid.Row="0" />
+
+                <!-- GridSplitter pour ajuster la hauteur entre le carré bleu et la table -->
+                <GridSplitter Grid.Row="1" Height="5" Background="Black" ResizeDirection="Rows"
+                    HorizontalAlignment="Stretch" />
+
+                <!-- Table en bas -->
+                <Grid Grid.Row="2">
+                    <TabControl>
+                        <TabItem Header="Console">
+                            <Grid RowDefinitions="*,Auto">
+                                <!-- ScrollViewer autour du TextBox pour activer le scroll -->
+                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollBarVisibility="Auto">
+                                    <TextBox x:Name="ConsoleOutput"
+                                        IsReadOnly="True"
+                                        AcceptsReturn="True"
+                                        FontFamily="Consolas"
+                                        Background="Black"
+                                        Foreground="White"
+                                        Margin="10"
+                                        FontSize="12"
+                                        TextWrapping="Wrap" />
+                                </ScrollViewer>
+
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" x:Name="ConsoleInput"
+                                        KeyDown="OnConsoleInputKeyDown" />
+                                    <Button Grid.Column="1"
+                                        Content="Exécuter"
+                                        Click="OnConsoleCommandSubmit"
+                                        Margin="5,0,0,0" />
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="Debugger">
+                            <TextBlock Text="Debugger info here..." Margin="10" />
+                        </TabItem>
+                        <TabItem Header="Logs">
+                            <TextBlock Text="Logs and system messages..." Margin="10" />
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Grid>
+
+            <!-- GridSplitter entre les colonnes -->
+            <GridSplitter Grid.Column="1" Width="5" Background="Black" ResizeDirection="Columns"
+                HorizontalAlignment="Stretch" />
+
+            <!-- Deuxième colonne (25% de largeur) avec le carré vert -->
+            <Rectangle Grid.Column="2" Fill="Green" />
+
+        </Grid>
+
+    </DockPanel>
+</Window>
