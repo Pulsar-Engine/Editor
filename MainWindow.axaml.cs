@@ -3,6 +3,8 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input;
+using Avalonia.Platform.Storage;
+using System.Threading.Tasks;
 
 namespace Editeur
 {
@@ -36,19 +38,19 @@ namespace Editeur
 
         private void ExecuteCommand()
         {
-            string command = ConsoleInput.Text.Trim();
-            if (string.IsNullOrWhiteSpace(command))
+            string filePath = ConsoleInput.Text.Trim();
+            if (string.IsNullOrWhiteSpace(filePath))
                 return;
 
             ConsoleInput.Text = "";
-            ConsoleOutput.Text += "> " + command + Environment.NewLine;
+            ConsoleOutput.Text += "> Running: " + filePath + Environment.NewLine;
 
             try
             {
                 ProcessStartInfo psi = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe", // Utilise "bash" sur Linux/macOS si nécessaire
-                    Arguments = "/C " + command,
+                    FileName = "neutron", // Le binaire Rust
+                    Arguments = filePath,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -75,6 +77,29 @@ namespace Editeur
             }
 
             ScrollToBottom();
+        }
+
+        private async void OnOpenFileClicked(object? sender, RoutedEventArgs e)
+        {
+            var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
+            if (storageProvider == null) return;
+
+            var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Choisir un fichier Neutron",
+                AllowMultiple = false
+            });
+
+            if (files.Count > 0)
+            {
+                ConsoleInput.Text = files[0].Path.LocalPath;
+                ExecuteCommand();
+            }
+        }
+
+        private void OnExitClicked(object? sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }
