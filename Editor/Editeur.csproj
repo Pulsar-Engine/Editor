@@ -25,7 +25,7 @@
     </ItemGroup>
     <Target Name="CopyNeutronBinary" AfterTargets="Build">
         <ItemGroup>
-            <NeutronBinary Include="NeutronRuntime\neutron.exe" />
+            <NeutronBinary Include="..\NeutronRuntime\neutron.exe" />
         </ItemGroup>
         <Copy
             SourceFiles="@(NeutronBinary)"
