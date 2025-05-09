@@ -1,10 +1,10 @@
 using System;
 using System.Diagnostics;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
-using Avalonia.Input;
-using Avalonia.Platform.Storage;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 
 namespace Editeur
 {
@@ -15,12 +15,11 @@ namespace Editeur
             InitializeComponent();
         }
 
-        private void ScrollToBottom()
+        private void AppendToConsole(string text)
         {
-            if (ConsoleOutput.Parent is ScrollViewer scrollViewer)
-            {
-                scrollViewer.ScrollToEnd();
-            }
+            ConsoleOutput.Text += text + Environment.NewLine;
+            ConsoleOutput.CaretIndex = ConsoleOutput.Text.Length;
+            ConsoleOutput.BringIntoView();
         }
 
         private void OnConsoleCommandSubmit(object? sender, RoutedEventArgs e)
@@ -43,18 +42,18 @@ namespace Editeur
                 return;
 
             ConsoleInput.Text = "";
-            ConsoleOutput.Text += "> Running: " + filePath + Environment.NewLine;
+            AppendToConsole("> Running: " + filePath);
 
             try
             {
                 ProcessStartInfo psi = new ProcessStartInfo
                 {
-                    FileName = "neutron", // Le binaire Rust
+                    FileName = "neutron",
                     Arguments = filePath,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
                 };
 
                 using (Process process = new Process { StartInfo = psi })
@@ -65,30 +64,31 @@ namespace Editeur
                     process.WaitForExit();
 
                     if (!string.IsNullOrWhiteSpace(output))
-                        ConsoleOutput.Text += output + Environment.NewLine;
+                        AppendToConsole(output.TrimEnd());
 
                     if (!string.IsNullOrWhiteSpace(error))
-                        ConsoleOutput.Text += "Erreur : " + error + Environment.NewLine;
+                        AppendToConsole("Erreur : " + error.TrimEnd());
                 }
             }
             catch (Exception ex)
             {
-                ConsoleOutput.Text += "Erreur d'exécution : " + ex.Message + Environment.NewLine;
+                AppendToConsole("Erreur d'exécution : " + ex.Message);
             }
-
-            ScrollToBottom();
         }
 
         private async void OnOpenFileClicked(object? sender, RoutedEventArgs e)
         {
             var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
-            if (storageProvider == null) return;
+            if (storageProvider == null)
+                return;
 
-            var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Choisir un fichier Neutron",
-                AllowMultiple = false
-            });
+            var files = await storageProvider.OpenFilePickerAsync(
+                new FilePickerOpenOptions
+                {
+                    Title = "Choisir un fichier Neutron",
+                    AllowMultiple = false,
+                }
+            );
 
             if (files.Count > 0)
             {

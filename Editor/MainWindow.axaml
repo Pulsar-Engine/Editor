@@ -41,18 +41,23 @@
                         <TabItem Header="Console">
                             <Grid RowDefinitions="*,Auto">
                                 <!-- ScrollViewer autour du TextBox pour activer le scroll -->
-                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
-                                    HorizontalScrollBarVisibility="Auto">
+                                <ScrollViewer Grid.Row="0"
+                                    VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollBarVisibility="Disabled">
                                     <TextBox x:Name="ConsoleOutput"
                                         IsReadOnly="True"
                                         AcceptsReturn="True"
+                                        TextWrapping="Wrap"
                                         FontFamily="Consolas"
                                         Background="Black"
                                         Foreground="White"
-                                        Margin="10"
                                         FontSize="12"
-                                        TextWrapping="Wrap" />
+                                        Margin="10"
+                                        BorderThickness="0"
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Disabled" />
                                 </ScrollViewer>
+
 
                                 <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
