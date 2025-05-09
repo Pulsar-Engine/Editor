@@ -53,9 +53,7 @@
                                         Foreground="White"
                                         FontSize="12"
                                         Margin="10"
-                                        BorderThickness="0"
-                                        VerticalScrollBarVisibility="Auto"
-                                        HorizontalScrollBarVisibility="Disabled" />
+                                        BorderThickness="0" />
                                 </ScrollViewer>
 
 
