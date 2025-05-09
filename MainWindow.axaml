@@ -28,6 +28,7 @@
             <!-- Première colonne (75% de largeur) avec 2 lignes -->
             <Grid Grid.Column="0" RowDefinitions="3*,Auto,2*">
                 <!-- Carré bleu (partie supérieure) -->
+                <Grid></Grid>
                 <editeur:GameViewHost Grid.Row="0"/>
 
                 <!-- GridSplitter pour ajuster la hauteur entre le carré bleu et la table -->

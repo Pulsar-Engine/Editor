@@ -12,13 +12,13 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        GameEngineInterop.InitWindow(true);
-        Thread engineThread = new Thread(GameEngineInterop.Render);
-        engineThread.Start();
+        // GameEngineInterop.InitWindow(true);
+        // Thread engineThread = new Thread(GameEngineInterop.Render);
+        // engineThread.Start();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-        GameEngineInterop.CloseWindow();
-        engineThread.Join();
-        GameEngineInterop.DestroyWindow();
+        // GameEngineInterop.CloseWindow();
+        // engineThread.Join();
+        // GameEngineInterop.DestroyWindow();
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
