@@ -13,11 +13,8 @@ public class GameViewHost : NativeControlHost
 
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            _nativeHandle = GameEngineInterop.GetWindowPtr();
-            return new PlatformHandle(_nativeHandle, "HWND");
-        }
+        _nativeHandle = GameEngineInterop.GetWindowPtr();
+        return new PlatformHandle(_nativeHandle, "HWND");
 
         throw new PlatformNotSupportedException();
     }
