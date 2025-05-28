@@ -11,6 +11,7 @@
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.1.0"/>
         <PackageReference Include="Avalonia.Desktop" Version="11.1.0"/>
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.1.0"/>
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.0"/>
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.0"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
@@ -20,7 +21,7 @@
         </PackageReference>
     </ItemGroup>
 
-    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PropertyGroup Condition="'$(OS)' != '' and $([System.String]::Copy('$(OS)').ToLower().StartsWith('win'))">
         <DefineConstants>WINDOWS</DefineConstants>
     </PropertyGroup>
 
