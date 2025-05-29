@@ -1,91 +1,152 @@
-using System;
-using System.Diagnostics;
-using System.IO;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.VisualTree;
 
-namespace Editeur
+namespace YourApp
 {
     public partial class MainWindow : Window
     {
-        private string? lastSelectedFolder = null;
-        private Grid? RightPanel;
+        private bool _fileExplorerVisible = true;
+        private bool _gameViewVisible = true;
+        private bool _consoleVisible = true;
 
         public MainWindow()
         {
             InitializeComponent();
-            RightPanel = this.FindControl<Grid>("RightPanel");
-            ShowNoFolderSelectedMessage();
         }
 
-        private void ToggleRightPanel(object? sender, RoutedEventArgs e)
+        private async void OpenFolder(object? sender, RoutedEventArgs e)
         {
-            if (RightPanel is not null)
+            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                RightPanel.IsVisible = !RightPanel.IsVisible;
+                AllowMultiple = false,
+                SuggestedStartLocation = await StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads)
+            });
+
+            if (folder.Count > 0)
+            {
+                var path = folder[0].Path.LocalPath;
+                LoadDirectory(path, FileExplorerTree);
+                NoFolderMessage.IsVisible = false;
+                FileExplorerTree.IsVisible = true;
             }
         }
 
-        private void AppendToConsole(string text)
+        private void LoadDirectory(string path, TreeView tree)
         {
-            ConsoleOutput.Text += text + Environment.NewLine;
-            ConsoleOutput.CaretIndex = ConsoleOutput.Text.Length;
-            ConsoleOutput.BringIntoView();
+            var root = new TreeViewItem { Header = Path.GetFileName(path), Tag = path };
+            AddDirectoryItems(path, root);
+            tree.ItemsSource = new List<TreeViewItem> { root };
         }
 
-        private void OnConsoleCommandSubmit(object? sender, RoutedEventArgs e)
+        private void AddDirectoryItems(string path, TreeViewItem parent)
         {
-            ExecuteCommand();
+            try
+            {
+                foreach (var dir in Directory.GetDirectories(path))
+                {
+                    var dirItem = new TreeViewItem { Header = Path.GetFileName(dir), Tag = dir };
+                    AddDirectoryItems(dir, dirItem);
+                    parent.Items.Add(dirItem);
+                }
+
+                foreach (var file in Directory.GetFiles(path))
+                {
+                    var fileItem = new TreeViewItem { Header = Path.GetFileName(file), Tag = file };
+                    parent.Items.Add(fileItem);
+                }
+            }
+            catch
+            {
+                // On ignore les exceptions pour ne pas planter
+            }
+        }
+
+        private void AppendConsoleText(string text)
+        {
+            // Ajoute du texte à la TextBox console en gardant un saut de ligne
+            ConsoleOutput.Text += text + "\n";
+
+            // Place le caret à la fin du texte pour suivre le scroll
+            ConsoleOutput.CaretIndex = ConsoleOutput.Text.Length;
+
+            // Scroll automatique vers le bas
+            var scrollViewer = ConsoleOutput.GetVisualDescendants()
+                .OfType<ScrollViewer>()
+                .FirstOrDefault();
+
+            scrollViewer?.ScrollToEnd();
+        }
+
+        private void OnExecuteButtonClick(object? sender, RoutedEventArgs e)
+        {
+            ExecuteCommandAsync();
         }
 
         private void OnConsoleInputKeyDown(object? sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                ExecuteCommand();
+                ExecuteCommandAsync();
+                e.Handled = true;
             }
         }
 
-        private void ExecuteCommand()
+        private async void ExecuteCommandAsync()
         {
-            string filePath = ConsoleInput.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(filePath))
+            var command = ConsoleInput.Text.Trim();
+            if (string.IsNullOrWhiteSpace(command))
                 return;
 
-            ConsoleInput.Text = "";
-            AppendToConsole("> Running: " + filePath);
+            ConsoleInput.Text = string.Empty;
 
             try
             {
-                ProcessStartInfo psi = new ProcessStartInfo
+                var psi = new ProcessStartInfo
                 {
                     FileName = "neutron",
-                    Arguments = filePath,
+                    Arguments = $"\"{command}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true,
+                    CreateNoWindow = true
                 };
 
-                using (Process process = new Process { StartInfo = psi })
+                using (var process = Process.Start(psi))
                 {
-                    process.Start();
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
+                    if (process == null)
+                    {
+                        AppendConsoleText("Erreur : Impossible de démarrer le processus.");
+                        return;
+                    }
+
+                    // Lecture asynchrone des sorties pour ne pas bloquer l’UI
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
+
+                    await Task.WhenAll(outputTask, errorTask);
+
+                    if (!string.IsNullOrWhiteSpace(outputTask.Result))
+                        AppendConsoleText(outputTask.Result.Trim());
+
+                    if (!string.IsNullOrWhiteSpace(errorTask.Result))
+                        AppendConsoleText("Erreur : " + errorTask.Result.Trim());
+
                     process.WaitForExit();
-
-                    if (!string.IsNullOrWhiteSpace(output))
-                        AppendToConsole(output.TrimEnd());
-
-                    if (!string.IsNullOrWhiteSpace(error))
-                        AppendToConsole("Erreur : " + error.TrimEnd());
                 }
             }
             catch (Exception ex)
             {
-                AppendToConsole("Erreur d'exécution : " + ex.Message);
+                AppendConsoleText("Exception : " + ex.Message);
             }
         }
 
@@ -106,96 +167,75 @@ namespace Editeur
             if (files.Count > 0)
             {
                 ConsoleInput.Text = files[0].Path.LocalPath;
-                ExecuteCommand();
+                ExecuteCommandAsync();
             }
         }
 
-        private void OnExitClicked(object? sender, RoutedEventArgs e)
+        private void ToggleFileExplorer(object sender, RoutedEventArgs e)
         {
-            Close();
-        }
+            var col0 = MainGrid.ColumnDefinitions[0];
+            _fileExplorerVisible = !_fileExplorerVisible;
 
-        private async void OnOpenFolderClicked(object? sender, RoutedEventArgs e)
-        {
-            var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
-            if (storageProvider == null)
-                return;
-
-            var options = new FolderPickerOpenOptions
+            if (_fileExplorerVisible)
             {
-                Title = "Choisir un dossier",
-                AllowMultiple = false
-            };
-
-            if (!string.IsNullOrEmpty(lastSelectedFolder))
-            {
-                var parent = Directory.GetParent(lastSelectedFolder);
-                if (parent != null)
-                {
-                    options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(parent.FullName);
-                }
+                col0.Width = new GridLength(250);
+                FileExplorerPanel.IsVisible = true;
             }
             else
             {
-                string defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(defaultPath);
+                col0.Width = new GridLength(0);
+                FileExplorerPanel.IsVisible = false;
             }
 
-            var folders = await storageProvider.OpenFolderPickerAsync(options);
+            if (sender is MenuItem menuItem)
+                UpdateMenuItemHeader(menuItem, "File Explorer", _fileExplorerVisible);
+        }
 
-            if (folders.Count > 0)
+        private void ToggleGameView(object sender, RoutedEventArgs e)
+        {
+            var col2 = MainGrid.ColumnDefinitions[2];
+            _gameViewVisible = !_gameViewVisible;
+
+            if (_gameViewVisible)
             {
-                lastSelectedFolder = folders[0].Path.LocalPath;
-                LoadDirectoryIntoTreeView(lastSelectedFolder);
+                GameViewPanel.IsVisible = true;
+                col2.Width = new GridLength(1, GridUnitType.Star);
             }
             else
             {
-                ShowNoFolderSelectedMessage();
+                GameViewPanel.IsVisible = false;
+                col2.Width = new GridLength(0);
             }
+
+            if (sender is MenuItem menuItem)
+                UpdateMenuItemHeader(menuItem, "Game View", _gameViewVisible);
         }
 
-        private void ShowNoFolderSelectedMessage()
+        private void ToggleConsole(object sender, RoutedEventArgs e)
         {
-            FileExplorerTree.IsVisible = false;
-            NoFolderSelectedTextBlock.IsVisible = true;
-        }
+            var row2 = MainGrid.RowDefinitions[2];
+            _consoleVisible = !_consoleVisible;
 
-        private void LoadDirectoryIntoTreeView(string path)
-        {
-            FileExplorerTree.Items.Clear();
-            FileExplorerTree.Items.Add(CreateDirectoryNode(path));
-            FileExplorerTree.IsVisible = true;
-            NoFolderSelectedTextBlock.IsVisible = false;
-        }
-
-        private TreeViewItem CreateDirectoryNode(string path)
-        {
-            var directoryNode = new TreeViewItem
+            if (_consoleVisible)
             {
-                Header = Path.GetFileName(path),
-                Tag = path
-            };
-            try
-            {
-                foreach (var dir in Directory.GetDirectories(path))
-                {
-                    directoryNode.Items.Add(CreateDirectoryNode(dir));
-                }
-
-                foreach (var file in Directory.GetFiles(path))
-                {
-                    directoryNode.Items.Add(new TreeViewItem
-                    {
-                        Header = Path.GetFileName(file),
-                        Tag = file
-                    });
-                }
+                ConsolePanel.IsVisible = true;
+                row2.Height = new GridLength(250);
             }
-            catch (UnauthorizedAccessException)
+            else
             {
-                // Ignorer les dossiers non accessibles
+                ConsolePanel.IsVisible = false;
+                row2.Height = new GridLength(0);
             }
-            return directoryNode;
+
+            if (sender is MenuItem menuItem)
+                UpdateMenuItemHeader(menuItem, "Console", _consoleVisible);
         }
+
+        private void UpdateMenuItemHeader(MenuItem menuItem, string baseText, bool visible)
+        {
+            menuItem.Header = (visible ? "✓ " : "✗ ") + baseText;
+        }
+
+        private void Exit(object? sender, RoutedEventArgs e) => Close();
     }
 }
