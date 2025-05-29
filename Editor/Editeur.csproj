@@ -32,6 +32,10 @@
     <ItemGroup>
       <UpToDateCheckInput Remove="Style\Styles1.axaml" />
     </ItemGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\Icons\**\*.png" />
+    </ItemGroup>
     <Target Name="CopyNeutronBinary" AfterTargets="Build">
         <ItemGroup>
             <NeutronBinary Include="..\NeutronRuntime\neutron.exe" />

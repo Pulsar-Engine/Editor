@@ -14,6 +14,8 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Open..." Click="OnOpenFileClicked" />
                 <Separator />
+                <MenuItem Header="_Open Folder..." Click="OnOpenFolderClicked" />
+                <Separator />
                 <MenuItem Header="_Exit" Click="OnExitClicked" />
             </MenuItem>
 
@@ -85,11 +87,28 @@
             <!-- GridSplitter entre les colonnes -->
             <GridSplitter Grid.Column="1" Width="5" Background="Black" ResizeDirection="Columns"
                 HorizontalAlignment="Stretch" />
+            <!-- Deuxième colonne (25% de largeur) avec explorateur de fichiers -->
+            <!-- Deuxième colonne (25% de largeur) avec explorateur de fichiers -->
+            <Grid Grid.Column="2">
+                <DockPanel LastChildFill="True">
+                    <Border Padding="5" Background="#EEE" DockPanel.Dock="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Click="OnOpenFolderClicked" Background="Transparent" BorderBrush="Transparent" Padding="5">
+                                <Image Source="/Assets/Icons/Folder.png" Width="16" Height="16" />
+                            </Button>
 
-            <!-- Deuxième colonne (25% de largeur) avec le carré vert -->
-            <Rectangle Grid.Column="2" Fill="Green" />
-
+                        </StackPanel>
+                    </Border>
+                    <TreeView x:Name="FileExplorerTree"
+                              IsVisible="False"/>
+                    <TextBlock x:Name="NoFolderSelectedTextBlock"
+                               Text="Aucun dossier sélectionné"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Foreground="Gray"
+                               FontStyle="Italic" />
+                </DockPanel>
+            </Grid>
         </Grid>
-
     </DockPanel>
 </Window>
