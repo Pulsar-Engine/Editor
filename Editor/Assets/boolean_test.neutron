@@ -1,0 +1,18 @@
+class BoolTest then
+    func run() then
+        var ok bool
+        var a int
+        var b int
+
+        a = 10
+        b = 20
+
+        ok = a < b  # doit être true
+
+        if ok == true then
+            ret 1
+        else
+            ret 0
+        end
+    end
+end

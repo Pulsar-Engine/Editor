@@ -3,7 +3,7 @@
              x:Class="Editeur.App"
              RequestedThemeVariant="Default">
     <Application.Styles>
-        <SimpleTheme></SimpleTheme>
+        <SimpleTheme />
     </Application.Styles>
     <Application.Resources>
         <SolidColorBrush x:Key="PrimaryBackground" Color="#FF333333"/>

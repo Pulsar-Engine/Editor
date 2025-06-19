@@ -1,95 +1,143 @@
 <Window xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:editeur="clr-namespace:Editeur"
-    mc:Ignorable="d"
-    x:Class="Editeur.MainWindow"
-    Title="Éditeur"
-    Width="800"
-    Height="450">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:YourApp"
+        xmlns:editeur="clr-namespace:Editeur"
+        x:Class="YourApp.MainWindow"
+        Title="Éditeur Neutron"
+        Width="1200" Height="800">
 
-    <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open..." Click="OnOpenFileClicked" />
-                <Separator />
-                <MenuItem Header="_Exit" Click="OnExitClicked" />
-            </MenuItem>
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_Fichier">
+        <MenuItem Header="_Open..." Click="OnOpenFileClicked" />
+        <Separator />
+        <MenuItem Header="Ouvrir un dossier..." Click="OpenFolder"/>
+        <Separator />
+        <MenuItem Header="Quitter" Click="Exit"/>
+      </MenuItem>
+      <MenuItem Header="_Fenêtre">
+        <MenuItem Header="✓ File Explorer" Click="ToggleFileExplorer"/>
+        <MenuItem Header="✓ Editor" Click="ToggleEditor" x:Name="EditorMenuItem"/>
+        <MenuItem Header="✓ Game View" Click="ToggleGameView"/>
+        <MenuItem Header="✓ Console" Click="ToggleConsole"/>
+      </MenuItem>
+    </Menu>
+    
+    <Grid x:Name="MainGrid">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="5" />
+        <RowDefinition Height="250" />
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="250" />
+        <ColumnDefinition Width="5" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="5" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
 
-            <MenuItem Header="_Edit">
-                <MenuItem Header="Copy" />
-                <MenuItem Header="Paste" />
-            </MenuItem>
-        </Menu>
+      <!-- File Explorer -->
+      <Border Grid.Row="0" Grid.Column="0" x:Name="FileExplorerPanel" BorderBrush="Gray" BorderThickness="1">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Background="#444">
+            <TextBlock Text="Explorateur de fichiers" FontWeight="Bold"/>
+            <Button Content="📁 Ouvrir un dossier" Click="OpenFolder" HorizontalAlignment="Left" Margin="0,5,0,0"/>
+          </StackPanel>
 
-        <!-- Grid principale avec 2 colonnes -->
-        <Grid ColumnDefinitions="3*,Auto,1*">
+          <TextBlock x:Name="NoFolderMessage"
+                     Text="Aucun dossier ouvert"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Center"
+                     Foreground="Gray"
+                     FontStyle="Italic"
+                     IsVisible="True"/>
 
-            <!-- Première colonne (75% de largeur) avec 2 lignes -->
-            <Grid Grid.Column="0" RowDefinitions="3*,Auto,2*">
-                <!-- Carré bleu (partie supérieure) -->
-                <editeur:GameViewHost Grid.Row="0" />
+          <TreeView x:Name="FileExplorerTree" IsVisible="False">
+            <TreeView.ItemTemplate>
+              <TreeDataTemplate DataType="{x:Type local:FileSystemItem}" ItemsSource="{Binding Children}">
+                <TextBlock Text="{Binding Name}" />
+              </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+          </TreeView>
+        </DockPanel>
+      </Border>
 
-                <!-- GridSplitter pour ajuster la hauteur entre le carré bleu et la table -->
-                <GridSplitter Grid.Row="1" Height="5" Background="Black" ResizeDirection="Rows"
-                    HorizontalAlignment="Stretch" />
+      <GridSplitter Grid.Row="0" Grid.Column="1" Width="5" Background="Gray"
+                    ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" />
 
-                <!-- Table en bas -->
-                <Grid Grid.Row="2">
-                    <TabControl>
-                        <TabItem Header="Console">
-                            <Grid RowDefinitions="*,Auto">
-                                <!-- ScrollViewer autour du TextBox pour activer le scroll -->
-                                <ScrollViewer Grid.Row="0"
-                                    VerticalScrollBarVisibility="Auto"
-                                    HorizontalScrollBarVisibility="Disabled">
-                                    <TextBox x:Name="ConsoleOutput"
-                                        IsReadOnly="True"
-                                        AcceptsReturn="True"
-                                        TextWrapping="Wrap"
-                                        FontFamily="Consolas"
-                                        Background="Black"
-                                        Foreground="White"
-                                        FontSize="12"
-                                        Margin="10"
-                                        BorderThickness="0" />
-                                </ScrollViewer>
-
-
-                                <Grid Grid.Row="1">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0" x:Name="ConsoleInput"
-                                        KeyDown="OnConsoleInputKeyDown" />
-                                    <Button Grid.Column="1"
-                                        Content="Exécuter"
-                                        Click="OnConsoleCommandSubmit"
-                                        Margin="5,0,0,0" />
-                                </Grid>
-                            </Grid>
-                        </TabItem>
-
-                        <TabItem Header="Debugger">
-                            <TextBlock Text="Debugger info here..." Margin="10" />
-                        </TabItem>
-                        <TabItem Header="Logs">
-                            <TextBlock Text="Logs and system messages..." Margin="10" />
-                        </TabItem>
-                    </TabControl>
-                </Grid>
-            </Grid>
-
-            <!-- GridSplitter entre les colonnes -->
-            <GridSplitter Grid.Column="1" Width="5" Background="Black" ResizeDirection="Columns"
-                HorizontalAlignment="Stretch" />
-
-            <!-- Deuxième colonne (25% de largeur) avec le carré vert -->
-            <Rectangle Grid.Column="2" Fill="Green" />
-
+      <!-- Editor -->
+      <Border Grid.Row="0" Grid.Column="2" x:Name="EditorPanel" BorderBrush="Gray" BorderThickness="1">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Barre d'outils -->
+            <RowDefinition Height="*"/> <!-- Contenu de l'éditeur -->
+          </Grid.RowDefinitions>
+        
+          <!-- Barre d'outils de l'éditeur -->
+          <Border Grid.Row="0" Background="#EEE" Padding="5">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Button x:Name="SaveButton" Content="💾 Save" Click="SaveCurrentFile" 
+                      ToolTip.Tip="Save current file (Ctrl+S)"/>
+              <Button Content="🗑 Close" Click="CloseCurrentTab" 
+                      ToolTip.Tip="Close current tab"/>
+            </StackPanel>
+          </Border>
+        
+          <!-- Contenu des onglets -->
+          <TabControl x:Name="EditorTabs" Grid.Row="1">
+            <TabItem Header="Bienvenue">
+              <TextBox Text="Ouvrez un fichier en double-cliquant dans l'explorateur" 
+                       IsReadOnly="True"
+                       Background="Transparent"
+                       BorderThickness="0"/>
+            </TabItem>
+          </TabControl>
         </Grid>
+      </Border>
 
-    </DockPanel>
+      <GridSplitter Grid.Row="0" Grid.Column="3" Width="5" Background="Gray"
+                    ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" />
+
+      <!-- Game View -->
+      <Border Grid.Row="0" Grid.Column="4" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
+        <editeur:GameViewHost/>
+      </Border>
+
+      <GridSplitter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Height="5" Background="Gray"
+                    ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
+
+      <!-- Console -->
+      <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" x:Name="ConsolePanel" BorderBrush="Gray" BorderThickness="1">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <TextBox Grid.Row="0" x:Name="ConsoleOutput"
+                   AcceptsReturn="True"
+                   IsReadOnly="True"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                   Background="Black"
+                   Foreground="White"
+                   FontFamily="Consolas"
+                   Margin="5" />
+
+          <Grid Grid.Row="1" Margin="5">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="40" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Column="0" x:Name="ConsoleInput" Height="30" VerticalAlignment="Center"
+                     KeyDown="OnConsoleInputKeyDown"
+                     FontFamily="Consolas" Margin="0,0,5,0" />
+
+            <Button Grid.Column="1" Content="▶" Width="40" Click="OnExecuteButtonClick" VerticalAlignment="Center" />
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+  </DockPanel>
 </Window>
