@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls.Primitives;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 
 namespace YourApp
@@ -22,53 +24,276 @@ namespace YourApp
         public MainWindow()
         {
             InitializeComponent();
+            FileExplorerTree.AddHandler(InputElement.DoubleTappedEvent, OnFileDoubleClick, RoutingStrategies.Bubble);
+        }
+        private bool _editorVisible = true;
+
+        private void ToggleEditor(object sender, RoutedEventArgs e)
+        {
+            var col2 = MainGrid.ColumnDefinitions[2];
+            var col3Splitter = MainGrid.ColumnDefinitions[3];
+            _editorVisible = !_editorVisible;
+
+            if (_editorVisible)
+            {
+                EditorPanel.IsVisible = true;
+                col2.Width = new GridLength(1, GridUnitType.Star);
+                col3Splitter.Width = new GridLength(5);
+            }
+            else
+            {
+                EditorPanel.IsVisible = false;
+                col2.Width = new GridLength(0);
+                col3Splitter.Width = new GridLength(0);
+            }
+
+            if (sender is MenuItem menuItem)
+                UpdateMenuItemHeader(menuItem, "Editor", _editorVisible);
         }
 
-        private async void OpenFolder(object? sender, RoutedEventArgs e)
+private void OnFileDoubleClick(object? sender, RoutedEventArgs e)
+{
+    // Vérifiez si l'élément cliqué est bien un TreeViewItem
+    if (e.Source is Control control && 
+        control.DataContext is TreeViewItem item && 
+        item.Tag is string filePath)
+    {
+        if (File.Exists(filePath))
         {
-            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                AllowMultiple = false,
-                SuggestedStartLocation = await StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads)
-            });
+            OpenFileInEditor(filePath);
+        }
+    }
+    // Alternative si la première méthode ne fonctionne pas
+    else if (e.Source is TextBlock textBlock && 
+             textBlock.DataContext is TreeViewItem altItem && 
+             altItem.Tag is string altFilePath)
+    {
+        if (File.Exists(altFilePath))
+        {
+            OpenFileInEditor(altFilePath);
+        }
+    }
+}
 
-            if (folder.Count > 0)
+private void OpenFileInEditor(string filePath)
+{
+    try
+    {
+        // Vérifie si le fichier est déjà ouvert
+        if (EditorTabs?.Items == null) return;
+        
+        foreach (var item in EditorTabs.Items)
+        {
+            if (item is TabItem tab && tab.Tag is string path && path == filePath)
             {
-                var path = folder[0].Path.LocalPath;
-                LoadDirectory(path, FileExplorerTree);
-                NoFolderMessage.IsVisible = false;
-                FileExplorerTree.IsVisible = true;
+                EditorTabs.SelectedItem = tab;
+                return;
             }
         }
 
-        private void LoadDirectory(string path, TreeView tree)
+        // Lit le contenu du fichier
+        var content = File.ReadAllText(filePath);
+        
+        // Crée un ScrollViewer pour permettre le défilement
+        var scrollViewer = new ScrollViewer
         {
-            var root = new TreeViewItem { Header = Path.GetFileName(path), Tag = path };
-            AddDirectoryItems(path, root);
-            tree.ItemsSource = new List<TreeViewItem> { root };
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        
+        // Crée la TextBox et l'ajoute au ScrollViewer
+        var textBox = new TextBox 
+        { 
+            Text = content,
+            AcceptsReturn = true,
+            AcceptsTab = true,
+            TextWrapping = TextWrapping.NoWrap,
+            FontFamily = "Consolas"
+        };
+        
+        scrollViewer.Content = textBox;
+        
+        var tabItem = new TabItem 
+        { 
+            Header = Path.GetFileName(filePath),
+            Content = scrollViewer,
+            Tag = filePath,
+            ContextMenu = CreateTabContextMenu(filePath, textBox)
+        };
+        
+        EditorTabs.Items.Add(tabItem);
+        EditorTabs.SelectedItem = tabItem;
+    }
+    catch (Exception ex)
+    {
+        AppendConsoleText($"Erreur lors de l'ouverture du fichier: {ex.Message}");
+    }
+}
+
+private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
+{
+    if (editor == null) return null;
+    
+    var menu = new ContextMenu();
+    
+    var saveItem = new MenuItem { Header = "Enregistrer" };
+    saveItem.Click += (s, e) => SaveFile(filePath, editor.Text ?? string.Empty);
+    
+    var closeItem = new MenuItem { Header = "Fermer" };
+    closeItem.Click += (s, e) => CloseTab(filePath);
+    
+    menu.Items.Add(saveItem);
+    menu.Items.Add(closeItem);
+    
+    return menu;
+}
+
+    private void SaveFile(string filePath, string content)
+    {
+        try
+        {
+            File.WriteAllText(filePath, content);
+            AppendConsoleText($"Fichier enregistré: {filePath}");
+        }
+        catch (Exception ex)
+        {
+            AppendConsoleText($"Erreur lors de l'enregistrement: {ex.Message}");
+        }
+    }
+    // Sauvegarder le fichier courant
+    private void SaveCurrentFile(object sender, RoutedEventArgs e)
+    {
+        if (EditorTabs.SelectedItem is TabItem currentTab && currentTab.Tag is string filePath)
+        {
+            try
+            {
+                if (currentTab.Content is ScrollViewer scrollViewer && 
+                    scrollViewer.Content is TextBox textBox)
+                {
+                    File.WriteAllText(filePath, textBox.Text);
+                    AppendConsoleText($"Fichier sauvegardé: {filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendConsoleText($"Erreur lors de la sauvegarde: {ex.Message}");
+            }
+        }
+        else
+        {
+            AppendConsoleText("Aucun fichier à sauvegarder");
+        }
+    }
+
+// Fermer l'onglet courant
+    private void CloseCurrentTab(object sender, RoutedEventArgs e)
+    {
+        if (EditorTabs.SelectedItem is TabItem tab && EditorTabs.Items.Count > 1)
+        {
+            EditorTabs.Items.Remove(tab);
+        }
+    }
+
+// Gestion du raccourci Ctrl+S
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+    
+        if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+        {
+            SaveCurrentFile(null, null);
+            e.Handled = true;
+        }
+    }
+
+    private void CloseTab(string filePath)
+    {
+        if (EditorTabs?.Items == null) return;
+        
+        for (int i = 0; i < EditorTabs.Items.Count; i++)
+        {
+            if (EditorTabs.Items[i] is TabItem tab && tab.Tag is string path && path == filePath)
+            {
+                EditorTabs.Items.RemoveAt(i);
+                break;
+            }
+        }
+    }
+
+    private async void OpenFolder(object? sender, RoutedEventArgs e)
+    {
+        var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            AllowMultiple = false,
+            SuggestedStartLocation = await StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads)
+        });
+
+        if (folder.Count > 0)
+        {
+            var path = folder[0].Path.LocalPath;
+            LoadDirectory(path);
+            NoFolderMessage.IsVisible = false;
+            FileExplorerTree.IsVisible = true;
+        }
+    }
+
+        private void LoadDirectory(string path)
+        {
+            var rootItem = new FileSystemItem
+            {
+                Name = Path.GetFileName(path),
+                FullPath = path,
+                IsDirectory = true,
+                Children = GetDirectoryItems(path)
+            };
+
+            FileExplorerTree.ItemsSource = new List<FileSystemItem> { rootItem };
         }
 
-        private void AddDirectoryItems(string path, TreeViewItem parent)
+        private List<FileSystemItem> GetDirectoryItems(string path)
         {
+            var items = new List<FileSystemItem>();
+
             try
             {
                 foreach (var dir in Directory.GetDirectories(path))
                 {
-                    var dirItem = new TreeViewItem { Header = Path.GetFileName(dir), Tag = dir };
-                    AddDirectoryItems(dir, dirItem);
-                    parent.Items.Add(dirItem);
+                    items.Add(new FileSystemItem
+                    {
+                        Name = Path.GetFileName(dir),
+                        FullPath = dir,
+                        IsDirectory = true,
+                        Children = GetDirectoryItems(dir)
+                    });
                 }
 
                 foreach (var file in Directory.GetFiles(path))
                 {
-                    var fileItem = new TreeViewItem { Header = Path.GetFileName(file), Tag = file };
-                    parent.Items.Add(fileItem);
+                    items.Add(new FileSystemItem
+                    {
+                        Name = Path.GetFileName(file),
+                        FullPath = file,
+                        IsDirectory = false
+                    });
                 }
             }
             catch
             {
-                // On ignore les exceptions pour ne pas planter
+                // Ignorer les erreurs
             }
+
+            return items;
+        }
+
+        private void OnFileDoubleClick(object? sender, TappedEventArgs e)
+        {
+            if (e.Source is Control control && 
+                control.DataContext is FileSystemItem item && 
+                !item.IsDirectory)
+            {
+                OpenFileInEditor(item.FullPath);
+            }
+            e.Handled = true;
         }
 
         private void AppendConsoleText(string text)
@@ -193,18 +418,21 @@ namespace YourApp
 
         private void ToggleGameView(object sender, RoutedEventArgs e)
         {
-            var col2 = MainGrid.ColumnDefinitions[2];
+            var col4 = MainGrid.ColumnDefinitions[4];
+            var col3Splitter = MainGrid.ColumnDefinitions[3];
             _gameViewVisible = !_gameViewVisible;
 
             if (_gameViewVisible)
             {
                 GameViewPanel.IsVisible = true;
-                col2.Width = new GridLength(1, GridUnitType.Star);
+                col4.Width = new GridLength(1, GridUnitType.Star);
+                col3Splitter.Width = new GridLength(5);
             }
             else
             {
                 GameViewPanel.IsVisible = false;
-                col2.Width = new GridLength(0);
+                col4.Width = new GridLength(0);
+                col3Splitter.Width = new GridLength(0);
             }
 
             if (sender is MenuItem menuItem)

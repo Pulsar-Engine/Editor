@@ -1,12 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:YourApp"
         xmlns:editeur="clr-namespace:Editeur"
         x:Class="YourApp.MainWindow"
         Title="Éditeur Neutron"
         Width="1200" Height="800">
 
   <DockPanel>
-    <!-- Barre de menu -->
     <Menu DockPanel.Dock="Top">
       <MenuItem Header="_Fichier">
         <MenuItem Header="_Open..." Click="OnOpenFileClicked" />
@@ -17,10 +17,12 @@
       </MenuItem>
       <MenuItem Header="_Fenêtre">
         <MenuItem Header="✓ File Explorer" Click="ToggleFileExplorer"/>
+        <MenuItem Header="✓ Editor" Click="ToggleEditor" x:Name="EditorMenuItem"/>
         <MenuItem Header="✓ Game View" Click="ToggleGameView"/>
         <MenuItem Header="✓ Console" Click="ToggleConsole"/>
       </MenuItem>
     </Menu>
+    
     <Grid x:Name="MainGrid">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
@@ -31,8 +33,11 @@
         <ColumnDefinition Width="250" />
         <ColumnDefinition Width="5" />
         <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="5" />
+        <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
+      <!-- File Explorer -->
       <Border Grid.Row="0" Grid.Column="0" x:Name="FileExplorerPanel" BorderBrush="Gray" BorderThickness="1">
         <DockPanel>
           <StackPanel DockPanel.Dock="Top" Background="#444">
@@ -48,23 +53,62 @@
                      FontStyle="Italic"
                      IsVisible="True"/>
 
-          <TreeView x:Name="FileExplorerTree" IsVisible="False"/>
+          <TreeView x:Name="FileExplorerTree" IsVisible="False">
+            <TreeView.ItemTemplate>
+              <TreeDataTemplate DataType="{x:Type local:FileSystemItem}" ItemsSource="{Binding Children}">
+                <TextBlock Text="{Binding Name}" />
+              </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+          </TreeView>
         </DockPanel>
       </Border>
 
-      <!-- Splitter vertical -->
       <GridSplitter Grid.Row="0" Grid.Column="1" Width="5" Background="Gray"
                     ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" />
 
-      <!-- Vue de jeu -->
-      <Border Grid.Row="0" Grid.Column="2" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
+      <!-- Editor -->
+      <Border Grid.Row="0" Grid.Column="2" x:Name="EditorPanel" BorderBrush="Gray" BorderThickness="1">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Barre d'outils -->
+            <RowDefinition Height="*"/> <!-- Contenu de l'éditeur -->
+          </Grid.RowDefinitions>
+        
+          <!-- Barre d'outils de l'éditeur -->
+          <Border Grid.Row="0" Background="#EEE" Padding="5">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Button x:Name="SaveButton" Content="💾 Save" Click="SaveCurrentFile" 
+                      ToolTip.Tip="Save current file (Ctrl+S)"/>
+              <Button Content="🗑 Close" Click="CloseCurrentTab" 
+                      ToolTip.Tip="Close current tab"/>
+            </StackPanel>
+          </Border>
+        
+          <!-- Contenu des onglets -->
+          <TabControl x:Name="EditorTabs" Grid.Row="1">
+            <TabItem Header="Bienvenue">
+              <TextBox Text="Ouvrez un fichier en double-cliquant dans l'explorateur" 
+                       IsReadOnly="True"
+                       Background="Transparent"
+                       BorderThickness="0"/>
+            </TabItem>
+          </TabControl>
+        </Grid>
+      </Border>
+
+      <GridSplitter Grid.Row="0" Grid.Column="3" Width="5" Background="Gray"
+                    ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" />
+
+      <!-- Game View -->
+      <Border Grid.Row="0" Grid.Column="4" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
         <editeur:GameViewHost/>
       </Border>
 
-      <GridSplitter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Height="5" Background="Gray"
+      <GridSplitter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Height="5" Background="Gray"
                     ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
 
-      <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" x:Name="ConsolePanel" BorderBrush="Gray" BorderThickness="1">
+      <!-- Console -->
+      <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" x:Name="ConsolePanel" BorderBrush="Gray" BorderThickness="1">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -80,7 +124,6 @@
                    FontFamily="Consolas"
                    Margin="5" />
 
-          <!-- Ligne d'entrée -->
           <Grid Grid.Row="1" Margin="5">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

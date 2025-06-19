@@ -19,6 +19,8 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="Dock.Model" Version="11.3.0.2" />
+        <PackageReference Include="ReactiveUI" Version="20.3.1" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(OS)' != '' and $([System.String]::Copy('$(OS)').ToLower().StartsWith('win'))">
@@ -35,6 +37,12 @@
 
     <ItemGroup>
         <AvaloniaResource Include="Assets\Icons\**\*.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="FileSystemItem.cs">
+        <DependentUpon>MainWindow.axaml</DependentUpon>
+      </Compile>
     </ItemGroup>
     <Target Name="CopyNeutronBinary" AfterTargets="Build">
         <ItemGroup>
