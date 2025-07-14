@@ -7,11 +7,12 @@
         Width="1200" Height="800">
 
   <Window.Styles>
-    <Style Selector="Button">
+    <Style Selector="Button.toolButton">
       <Setter Property="Padding" Value="5,2"/>
       <Setter Property="MinWidth" Value="70"/>
+      <Setter Property="MaxWidth" Value="120"/>
     </Style>
-    <Style Selector="ToggleButton">
+    <Style Selector="ToggleButton.toolButton">
       <Setter Property="Padding" Value="5,2"/>
       <Setter Property="MinWidth" Value="70"/>
     </Style>
@@ -100,7 +101,7 @@
                 <TextBlock Text="Ouvrez un fichier en double-cliquant dans l'explorateur"
                            FontSize="16"
                            Padding="10"
-                           TextWrapping="NoWrap" />
+                           TextWrapping="Wrap"/>
               </ScrollViewer>
             </TabItem>
           </TabControl>
@@ -111,47 +112,81 @@
                     ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" />
 
       <!-- Game View -->
-      <Border Grid.Row="0" Grid.Column="4" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
-        <Grid>
-          <Grid.RowDefinitions>
+<Border Grid.Row="0" Grid.Column="4" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
+    <Grid>
+        <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-          
-          <Border Grid.Row="0" Background="#EEE" Padding="5">
-            <StackPanel Orientation="Horizontal" Spacing="5">
-              <Button Content="Sélectionner" ToolTip.Tip="Mode sélection (V)" 
-                      Click="OnSelectToolClicked" x:Name="SelectToolButton"/>
-              <Button Content="Déplacer" ToolTip.Tip="Mode déplacement (M)" 
-                      Click="OnMoveToolClicked" x:Name="MoveToolButton"/>
-              
-              <Separator Margin="5,0"/>
-              
-              <Button Content="Dupliquer" ToolTip.Tip="Dupliquer l'objet (Ctrl+D)" 
-                      Click="OnDuplicateClicked"/>
-              <Button Content="Supprimer" ToolTip.Tip="Supprimer l'objet (Del)" 
-                      Click="OnDeleteClicked"/>
-              
-              <Separator Margin="5,0"/>
-              
-              <Button Content="Aligner X" ToolTip.Tip="Aligner sur l'axe X" 
-                      Click="OnAlignXClicked"/>
-              <Button Content="Aligner Y" ToolTip.Tip="Aligner sur l'axe Y" 
-                      Click="OnAlignYClicked"/>
-              
-              <Separator Margin="5,0"/>
-              
-              <ToggleButton Content="Grille" ToolTip.Tip="Afficher/Masquer la grille" 
-                            x:Name="GridToggle"/>
-              <TextBox Text="10" Width="40" ToolTip.Tip="Taille de la grille"/>
-              <ToggleButton Content="Snap" ToolTip.Tip="Activer/Désactiver le snap" 
-                            x:Name="SnapToggle" IsChecked="True"/>
-            </StackPanel>
-          </Border>
-          
-          <editeur:GameViewHost Grid.Row="1"/>
-        </Grid>
-      </Border>
+        </Grid.RowDefinitions>
+        
+        <Border Grid.Row="0" Background="#EEE" Padding="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Boutons principaux -->
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Button x:Name="SelectToolButton" 
+                          Classes="toolButton"
+                          Content="Sélection" 
+                          Click="OnSelectToolClicked"
+                          ToolTip.Tip="Mode sélection (V)"/>
+        
+                  <Button x:Name="MoveToolButton" 
+                          Classes="toolButton"
+                          Content="Déplacer" 
+                          Click="OnMoveToolClicked"
+                          ToolTip.Tip="Mode déplacement (M)"/>
+
+                  <ToggleButton x:Name="GridToggle" 
+                                Classes="toolButton"
+                                Content="Grille"
+                                ToolTip.Tip="Afficher/Masquer la grille"/>
+             
+                  <ToggleButton x:Name="SnapToggle" 
+                                Classes="toolButton"
+                                Content="Snap"
+                                ToolTip.Tip="Activer/Désactiver le snap"
+                                IsChecked="True"/>
+                </StackPanel>
+                
+                <!-- Menu déroulant pour outils supplémentaires -->
+                <Button x:Name="MoreToolsButton" 
+                        Grid.Column="1" 
+                        Content="⋮" 
+                        Width="30" 
+                        HorizontalAlignment="Right">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Dupliquer" Click="OnDuplicateClicked"
+                                      InputGesture="Ctrl+D"/>
+                            <MenuItem Header="Supprimer" Click="OnDeleteClicked"
+                                      InputGesture="Delete"/>
+                            <Separator/>
+                            <MenuItem Header="Aligner X" Click="OnAlignXClicked"/>
+                            <MenuItem Header="Aligner Y" Click="OnAlignYClicked"/>
+                            <Separator/>
+                            <MenuItem Header="Grille" Click="OnToggleGrid">
+                                <MenuItem.Icon>
+                                    <CheckBox IsChecked="{Binding #GridToggle.IsChecked, Mode=TwoWay}"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Snap" Click="OnToggleSnap">
+                                <MenuItem.Icon>
+                                    <CheckBox IsChecked="{Binding #SnapToggle.IsChecked, Mode=TwoWay}"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+        </Border>
+        
+        <editeur:GameViewHost Grid.Row="1"/>
+    </Grid>
+</Border>
 
       <GridSplitter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Height="5" Background="Gray"
                     ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />

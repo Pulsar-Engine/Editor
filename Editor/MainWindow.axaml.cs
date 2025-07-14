@@ -10,13 +10,14 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.Primitives;
-using Avalonia.Media;
 using Avalonia.VisualTree;
+using Avalonia.Media;
 
 namespace PulsarApp
 {
     public partial class MainWindow : Window
     {
+        // États de visibilité
         private bool _fileExplorerVisible = true;
         private bool _gameViewVisible = true;
         private bool _consoleVisible = true;
@@ -25,10 +26,46 @@ namespace PulsarApp
         public MainWindow()
         {
             InitializeComponent();
+            InitializeControls();
+            SetupEventHandlers();
             FileExplorerTree.AddHandler(InputElement.DoubleTappedEvent, OnFileDoubleClick, RoutingStrategies.Bubble);
+            this.SizeChanged += OnWindowSizeChanged;
         }
 
-        private void ToggleEditor(object sender, RoutedEventArgs e)
+        private void InitializeControls()
+        {
+            // Initialisation des références aux contrôles
+            SelectToolButton = this.FindControl<Button>("SelectToolButton");
+            MoveToolButton = this.FindControl<Button>("MoveToolButton");
+            MoreToolsButton = this.FindControl<Button>("MoreToolsButton");
+            GridToggle = this.FindControl<ToggleButton>("GridToggle");
+            SnapToggle = this.FindControl<ToggleButton>("SnapToggle");
+        }
+
+        private void SetupEventHandlers()
+        {
+            FileExplorerTree.AddHandler(InputElement.DoubleTappedEvent, OnFileDoubleClick, RoutingStrategies.Bubble);
+            this.SizeChanged += OnWindowSizeChanged;
+            
+            // Initialisation des états
+            if (SelectToolButton != null) 
+                SelectToolButton.IsEnabled = false; // Mode sélection activé par défaut
+        }
+
+        private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
+        {
+            UpdateToolsVisibility();
+        }
+
+        private void UpdateToolsVisibility()
+        {
+            if (GameViewPanel != null && MoreToolsButton != null)
+            {
+                MoreToolsButton.IsVisible = GameViewPanel.Bounds.Width < 800;
+            }
+        }
+
+        private void ToggleEditor(object? sender, RoutedEventArgs e)
         {
             var col2 = MainGrid.ColumnDefinitions[2];
             var col3Splitter = MainGrid.ColumnDefinitions[3];
@@ -79,22 +116,17 @@ namespace PulsarApp
             {
                 if (EditorTabs?.Items == null) return;
                 
-                foreach (var item in EditorTabs.Items)
+                // Vérifie si le fichier est déjà ouvert
+                var existingTab = EditorTabs.Items.OfType<TabItem>()
+                    .FirstOrDefault(tab => tab.Tag is string path && path == filePath);
+                
+                if (existingTab != null)
                 {
-                    if (item is TabItem tab && tab.Tag is string path && path == filePath)
-                    {
-                        EditorTabs.SelectedItem = tab;
-                        return;
-                    }
+                    EditorTabs.SelectedItem = existingTab;
+                    return;
                 }
 
                 var content = File.ReadAllText(filePath);
-                var scrollViewer = new ScrollViewer
-                {
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
-                };
-                
                 var textBox = new TextBox 
                 { 
                     Text = content,
@@ -103,13 +135,11 @@ namespace PulsarApp
                     TextWrapping = TextWrapping.NoWrap,
                     FontFamily = "Consolas"
                 };
-                
-                scrollViewer.Content = textBox;
-                
+
                 var tabItem = new TabItem 
                 { 
                     Header = Path.GetFileName(filePath),
-                    Content = scrollViewer,
+                    Content = new ScrollViewer { Content = textBox },
                     Tag = filePath,
                     ContextMenu = CreateTabContextMenu(filePath, textBox)
                 };
@@ -154,7 +184,7 @@ namespace PulsarApp
             }
         }
 
-        private void SaveCurrentFile(object sender, RoutedEventArgs e)
+        private void SaveCurrentFile(object? sender, RoutedEventArgs e)
         {
             if (EditorTabs.SelectedItem is TabItem currentTab && currentTab.Tag is string filePath)
             {
@@ -178,7 +208,7 @@ namespace PulsarApp
             }
         }
 
-        private void CloseCurrentTab(object sender, RoutedEventArgs e)
+        private void CloseCurrentTab(object? sender, RoutedEventArgs e)
         {
             if (EditorTabs.SelectedItem is TabItem tab && EditorTabs.Items.Count > 1)
             {
@@ -190,73 +220,88 @@ namespace PulsarApp
         {
             base.OnKeyDown(e);
             
-            // Gestion des raccourcis communs
             if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
             {
-                SaveCurrentFile(null!, null!);
+                SaveCurrentFile(this, new RoutedEventArgs());
                 e.Handled = true;
                 return;
             }
             
-            // Gestion des raccourcis pour la GameView
             if (GameViewPanel.IsPointerOver)
             {
-                if (e.Key == Key.D && e.KeyModifiers == KeyModifiers.Control)
+                switch (e.Key)
                 {
-                    OnDuplicateClicked(null!, null!);
-                    e.Handled = true;
+                    case Key.D when e.KeyModifiers == KeyModifiers.Control:
+                        OnDuplicateClicked(this, new RoutedEventArgs());
+                        break;
+                    case Key.Delete:
+                        OnDeleteClicked(this, new RoutedEventArgs());
+                        break;
+                    case Key.V:
+                        if (SelectToolButton != null)
+                            OnSelectToolClicked(SelectToolButton, new RoutedEventArgs());
+                        break;
+                    case Key.M:
+                        if (MoveToolButton != null)
+                            OnMoveToolClicked(MoveToolButton, new RoutedEventArgs());
+                        break;
                 }
-                else if (e.Key == Key.Delete)
-                {
-                    OnDeleteClicked(null!, null!);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.V)
-                {
-                    OnSelectToolClicked(SelectToolButton, null!);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.M)
-                {
-                    OnMoveToolClicked(MoveToolButton, null!);
-                    e.Handled = true;
-                }
+                e.Handled = true;
             }
         }
 
-        // Méthodes pour la barre d'outils GameView
-        private void OnSelectToolClicked(object sender, RoutedEventArgs e)
+        private void OnSelectToolClicked(object? sender, RoutedEventArgs e)
         {
-            MoveToolButton.IsEnabled = true;
-            ((Button)sender).IsEnabled = false;
+            if (MoveToolButton != null) MoveToolButton.IsEnabled = true;
+            if (sender is Button btn) btn.IsEnabled = false;
             AppendConsoleText("Mode sélection activé");
         }
 
-        private void OnMoveToolClicked(object sender, RoutedEventArgs e)
+        private void OnMoveToolClicked(object? sender, RoutedEventArgs e)
         {
-            SelectToolButton.IsEnabled = true;
-            ((Button)sender).IsEnabled = false;
+            if (SelectToolButton != null) SelectToolButton.IsEnabled = true;
+            if (sender is Button btn) btn.IsEnabled = false;
             AppendConsoleText("Mode déplacement activé");
         }
 
-        private void OnDuplicateClicked(object sender, RoutedEventArgs e)
+        private void OnDuplicateClicked(object? sender, RoutedEventArgs e)
         {
             AppendConsoleText("Duplication demandée");
+            // Implémentez votre logique de duplication ici
         }
 
-        private void OnDeleteClicked(object sender, RoutedEventArgs e)
+        private void OnDeleteClicked(object? sender, RoutedEventArgs e)
         {
             AppendConsoleText("Suppression demandée");
+            // Implémentez votre logique de suppression ici
         }
 
-        private void OnAlignXClicked(object sender, RoutedEventArgs e)
+        private void OnAlignXClicked(object? sender, RoutedEventArgs e)
         {
             AppendConsoleText("Alignement sur X demandé");
         }
 
-        private void OnAlignYClicked(object sender, RoutedEventArgs e)
+        private void OnAlignYClicked(object? sender, RoutedEventArgs e)
         {
             AppendConsoleText("Alignement sur Y demandé");
+        }
+
+        private void OnToggleGrid(object? sender, RoutedEventArgs e)
+        {
+            if (GridToggle != null)
+            {
+                GridToggle.IsChecked = !GridToggle.IsChecked;
+                AppendConsoleText($"Grille {(GridToggle.IsChecked == true ? "activée" : "désactivée")}");
+            }
+        }
+
+        private void OnToggleSnap(object? sender, RoutedEventArgs e)
+        {
+            if (SnapToggle != null)
+            {
+                SnapToggle.IsChecked = !SnapToggle.IsChecked;
+                AppendConsoleText($"Snap {(SnapToggle.IsChecked == true ? "activé" : "désactivé")}");
+            }
         }
 
         private void CloseTab(string filePath)
@@ -340,17 +385,16 @@ namespace PulsarApp
 
         private void AppendConsoleText(string text)
         {
-            ConsoleOutput.Text += text + "\n";
+            if (ConsoleOutput == null) return;
+            
+            ConsoleOutput.Text += text + Environment.NewLine;
             ConsoleOutput.CaretIndex = ConsoleOutput.Text.Length;
 
-            var scrollViewers = ConsoleOutput.GetVisualDescendants()
+            var scrollViewer = ConsoleOutput.GetVisualDescendants()
                 .OfType<ScrollViewer>()
-                .ToList();
+                .FirstOrDefault();
 
-            if (scrollViewers.Count > 0)
-            {
-                scrollViewers[0].ScrollToEnd();
-            }
+            scrollViewer?.ScrollToEnd();
         }
 
         private void OnExecuteButtonClick(object? sender, RoutedEventArgs e)
@@ -431,12 +475,12 @@ namespace PulsarApp
 
             if (files.Count > 0)
             {
-                ConsoleInput.Text = files[0].Path.LocalPath;
+                ConsoleInput!.Text = files[0].Path.LocalPath;
                 ExecuteCommandAsync();
             }
         }
 
-        private void ToggleFileExplorer(object sender, RoutedEventArgs e)
+        private void ToggleFileExplorer(object? sender, RoutedEventArgs e)
         {
             var col0 = MainGrid.ColumnDefinitions[0];
             _fileExplorerVisible = !_fileExplorerVisible;
@@ -456,7 +500,7 @@ namespace PulsarApp
                 UpdateMenuItemHeader(menuItem, "File Explorer", _fileExplorerVisible);
         }
 
-        private void ToggleGameView(object sender, RoutedEventArgs e)
+        private void ToggleGameView(object? sender, RoutedEventArgs e)
         {
             var col4 = MainGrid.ColumnDefinitions[4];
             var col3Splitter = MainGrid.ColumnDefinitions[3];
@@ -479,7 +523,7 @@ namespace PulsarApp
                 UpdateMenuItemHeader(menuItem, "Game View", _gameViewVisible);
         }
 
-        private void ToggleConsole(object sender, RoutedEventArgs e)
+        private void ToggleConsole(object? sender, RoutedEventArgs e)
         {
             var row2 = MainGrid.RowDefinitions[2];
             _consoleVisible = !_consoleVisible;
