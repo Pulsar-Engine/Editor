@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 
-namespace YourApp
+namespace PulsarApp
 {
     public class FileSystemItem
     {
-        public string Name { get; set; } = string.Empty;
-        public string FullPath { get; set; } = string.Empty;
+        public required string Name { get; set; }
+        public required string FullPath { get; set; }
         public bool IsDirectory { get; set; }
-        public List<FileSystemItem> Children { get; set; } = new();
+        public List<FileSystemItem> Children { get; set; } = new List<FileSystemItem>();
     }
 }

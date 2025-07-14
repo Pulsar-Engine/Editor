@@ -13,20 +13,20 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
-namespace YourApp
+namespace PulsarApp
 {
     public partial class MainWindow : Window
     {
         private bool _fileExplorerVisible = true;
         private bool _gameViewVisible = true;
         private bool _consoleVisible = true;
+        private bool _editorVisible = true;
 
         public MainWindow()
         {
             InitializeComponent();
             FileExplorerTree.AddHandler(InputElement.DoubleTappedEvent, OnFileDoubleClick, RoutingStrategies.Bubble);
         }
-        private bool _editorVisible = true;
 
         private void ToggleEditor(object sender, RoutedEventArgs e)
         {
@@ -51,191 +51,244 @@ namespace YourApp
                 UpdateMenuItemHeader(menuItem, "Editor", _editorVisible);
         }
 
-private void OnFileDoubleClick(object? sender, RoutedEventArgs e)
-{
-    // Vérifiez si l'élément cliqué est bien un TreeViewItem
-    if (e.Source is Control control && 
-        control.DataContext is TreeViewItem item && 
-        item.Tag is string filePath)
-    {
-        if (File.Exists(filePath))
+        private void OnFileDoubleClick(object? sender, RoutedEventArgs e)
         {
-            OpenFileInEditor(filePath);
-        }
-    }
-    // Alternative si la première méthode ne fonctionne pas
-    else if (e.Source is TextBlock textBlock && 
-             textBlock.DataContext is TreeViewItem altItem && 
-             altItem.Tag is string altFilePath)
-    {
-        if (File.Exists(altFilePath))
-        {
-            OpenFileInEditor(altFilePath);
-        }
-    }
-}
-
-private void OpenFileInEditor(string filePath)
-{
-    try
-    {
-        // Vérifie si le fichier est déjà ouvert
-        if (EditorTabs?.Items == null) return;
-        
-        foreach (var item in EditorTabs.Items)
-        {
-            if (item is TabItem tab && tab.Tag is string path && path == filePath)
+            if (e.Source is Control control && 
+                control.DataContext is TreeViewItem item && 
+                item.Tag is string filePath)
             {
-                EditorTabs.SelectedItem = tab;
-                return;
+                if (File.Exists(filePath))
+                {
+                    OpenFileInEditor(filePath);
+                }
+            }
+            else if (e.Source is TextBlock textBlock && 
+                     textBlock.DataContext is TreeViewItem altItem && 
+                     altItem.Tag is string altFilePath)
+            {
+                if (File.Exists(altFilePath))
+                {
+                    OpenFileInEditor(altFilePath);
+                }
             }
         }
 
-        // Lit le contenu du fichier
-        var content = File.ReadAllText(filePath);
-        
-        // Crée un ScrollViewer pour permettre le défilement
-        var scrollViewer = new ScrollViewer
-        {
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
-        };
-        
-        // Crée la TextBox et l'ajoute au ScrollViewer
-        var textBox = new TextBox 
-        { 
-            Text = content,
-            AcceptsReturn = true,
-            AcceptsTab = true,
-            TextWrapping = TextWrapping.NoWrap,
-            FontFamily = "Consolas"
-        };
-        
-        scrollViewer.Content = textBox;
-        
-        var tabItem = new TabItem 
-        { 
-            Header = Path.GetFileName(filePath),
-            Content = scrollViewer,
-            Tag = filePath,
-            ContextMenu = CreateTabContextMenu(filePath, textBox)
-        };
-        
-        EditorTabs.Items.Add(tabItem);
-        EditorTabs.SelectedItem = tabItem;
-    }
-    catch (Exception ex)
-    {
-        AppendConsoleText($"Erreur lors de l'ouverture du fichier: {ex.Message}");
-    }
-}
-
-private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
-{
-    if (editor == null) return null;
-    
-    var menu = new ContextMenu();
-    
-    var saveItem = new MenuItem { Header = "Enregistrer" };
-    saveItem.Click += (s, e) => SaveFile(filePath, editor.Text ?? string.Empty);
-    
-    var closeItem = new MenuItem { Header = "Fermer" };
-    closeItem.Click += (s, e) => CloseTab(filePath);
-    
-    menu.Items.Add(saveItem);
-    menu.Items.Add(closeItem);
-    
-    return menu;
-}
-
-    private void SaveFile(string filePath, string content)
-    {
-        try
-        {
-            File.WriteAllText(filePath, content);
-            AppendConsoleText($"Fichier enregistré: {filePath}");
-        }
-        catch (Exception ex)
-        {
-            AppendConsoleText($"Erreur lors de l'enregistrement: {ex.Message}");
-        }
-    }
-    // Sauvegarder le fichier courant
-    private void SaveCurrentFile(object sender, RoutedEventArgs e)
-    {
-        if (EditorTabs.SelectedItem is TabItem currentTab && currentTab.Tag is string filePath)
+        private void OpenFileInEditor(string filePath)
         {
             try
             {
-                if (currentTab.Content is ScrollViewer scrollViewer && 
-                    scrollViewer.Content is TextBox textBox)
+                if (EditorTabs?.Items == null) return;
+                
+                foreach (var item in EditorTabs.Items)
                 {
-                    File.WriteAllText(filePath, textBox.Text);
-                    AppendConsoleText($"Fichier sauvegardé: {filePath}");
+                    if (item is TabItem tab && tab.Tag is string path && path == filePath)
+                    {
+                        EditorTabs.SelectedItem = tab;
+                        return;
+                    }
                 }
+
+                var content = File.ReadAllText(filePath);
+                var scrollViewer = new ScrollViewer
+                {
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+                };
+                
+                var textBox = new TextBox 
+                { 
+                    Text = content,
+                    AcceptsReturn = true,
+                    AcceptsTab = true,
+                    TextWrapping = TextWrapping.NoWrap,
+                    FontFamily = "Consolas"
+                };
+                
+                scrollViewer.Content = textBox;
+                
+                var tabItem = new TabItem 
+                { 
+                    Header = Path.GetFileName(filePath),
+                    Content = scrollViewer,
+                    Tag = filePath,
+                    ContextMenu = CreateTabContextMenu(filePath, textBox)
+                };
+                
+                EditorTabs.Items.Add(tabItem);
+                EditorTabs.SelectedItem = tabItem;
             }
             catch (Exception ex)
             {
-                AppendConsoleText($"Erreur lors de la sauvegarde: {ex.Message}");
+                AppendConsoleText($"Erreur lors de l'ouverture du fichier: {ex.Message}");
             }
         }
-        else
-        {
-            AppendConsoleText("Aucun fichier à sauvegarder");
-        }
-    }
 
-// Fermer l'onglet courant
-    private void CloseCurrentTab(object sender, RoutedEventArgs e)
-    {
-        if (EditorTabs.SelectedItem is TabItem tab && EditorTabs.Items.Count > 1)
+        private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
         {
-            EditorTabs.Items.Remove(tab);
+            if (editor == null) return null;
+            
+            var menu = new ContextMenu();
+            
+            var saveItem = new MenuItem { Header = "Enregistrer" };
+            saveItem.Click += (s, e) => SaveFile(filePath, editor.Text ?? string.Empty);
+            
+            var closeItem = new MenuItem { Header = "Fermer" };
+            closeItem.Click += (s, e) => CloseTab(filePath);
+            
+            menu.Items.Add(saveItem);
+            menu.Items.Add(closeItem);
+            
+            return menu;
         }
-    }
 
-// Gestion du raccourci Ctrl+S
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-    
-        if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+        private void SaveFile(string filePath, string content)
         {
-            SaveCurrentFile(null, null);
-            e.Handled = true;
-        }
-    }
-
-    private void CloseTab(string filePath)
-    {
-        if (EditorTabs?.Items == null) return;
-        
-        for (int i = 0; i < EditorTabs.Items.Count; i++)
-        {
-            if (EditorTabs.Items[i] is TabItem tab && tab.Tag is string path && path == filePath)
+            try
             {
-                EditorTabs.Items.RemoveAt(i);
-                break;
+                File.WriteAllText(filePath, content);
+                AppendConsoleText($"Fichier enregistré: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                AppendConsoleText($"Erreur lors de l'enregistrement: {ex.Message}");
             }
         }
-    }
 
-    private async void OpenFolder(object? sender, RoutedEventArgs e)
-    {
-        var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        private void SaveCurrentFile(object sender, RoutedEventArgs e)
         {
-            AllowMultiple = false,
-            SuggestedStartLocation = await StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads)
-        });
-
-        if (folder.Count > 0)
-        {
-            var path = folder[0].Path.LocalPath;
-            LoadDirectory(path);
-            NoFolderMessage.IsVisible = false;
-            FileExplorerTree.IsVisible = true;
+            if (EditorTabs.SelectedItem is TabItem currentTab && currentTab.Tag is string filePath)
+            {
+                try
+                {
+                    if (currentTab.Content is ScrollViewer scrollViewer && 
+                        scrollViewer.Content is TextBox textBox)
+                    {
+                        File.WriteAllText(filePath, textBox.Text);
+                        AppendConsoleText($"Fichier sauvegardé: {filePath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendConsoleText($"Erreur lors de la sauvegarde: {ex.Message}");
+                }
+            }
+            else
+            {
+                AppendConsoleText("Aucun fichier à sauvegarder");
+            }
         }
-    }
+
+        private void CloseCurrentTab(object sender, RoutedEventArgs e)
+        {
+            if (EditorTabs.SelectedItem is TabItem tab && EditorTabs.Items.Count > 1)
+            {
+                EditorTabs.Items.Remove(tab);
+            }
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            
+            // Gestion des raccourcis communs
+            if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+            {
+                SaveCurrentFile(null!, null!);
+                e.Handled = true;
+                return;
+            }
+            
+            // Gestion des raccourcis pour la GameView
+            if (GameViewPanel.IsPointerOver)
+            {
+                if (e.Key == Key.D && e.KeyModifiers == KeyModifiers.Control)
+                {
+                    OnDuplicateClicked(null!, null!);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Delete)
+                {
+                    OnDeleteClicked(null!, null!);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.V)
+                {
+                    OnSelectToolClicked(SelectToolButton, null!);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.M)
+                {
+                    OnMoveToolClicked(MoveToolButton, null!);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        // Méthodes pour la barre d'outils GameView
+        private void OnSelectToolClicked(object sender, RoutedEventArgs e)
+        {
+            MoveToolButton.IsEnabled = true;
+            ((Button)sender).IsEnabled = false;
+            AppendConsoleText("Mode sélection activé");
+        }
+
+        private void OnMoveToolClicked(object sender, RoutedEventArgs e)
+        {
+            SelectToolButton.IsEnabled = true;
+            ((Button)sender).IsEnabled = false;
+            AppendConsoleText("Mode déplacement activé");
+        }
+
+        private void OnDuplicateClicked(object sender, RoutedEventArgs e)
+        {
+            AppendConsoleText("Duplication demandée");
+        }
+
+        private void OnDeleteClicked(object sender, RoutedEventArgs e)
+        {
+            AppendConsoleText("Suppression demandée");
+        }
+
+        private void OnAlignXClicked(object sender, RoutedEventArgs e)
+        {
+            AppendConsoleText("Alignement sur X demandé");
+        }
+
+        private void OnAlignYClicked(object sender, RoutedEventArgs e)
+        {
+            AppendConsoleText("Alignement sur Y demandé");
+        }
+
+        private void CloseTab(string filePath)
+        {
+            if (EditorTabs?.Items == null) return;
+            
+            for (int i = 0; i < EditorTabs.Items.Count; i++)
+            {
+                if (EditorTabs.Items[i] is TabItem tab && tab.Tag is string path && path == filePath)
+                {
+                    EditorTabs.Items.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
+        private async void OpenFolder(object? sender, RoutedEventArgs e)
+        {
+            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                AllowMultiple = false,
+                SuggestedStartLocation = await StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads)
+            });
+
+            if (folder.Count > 0)
+            {
+                var path = folder[0].Path.LocalPath;
+                LoadDirectory(path);
+                NoFolderMessage.IsVisible = false;
+                FileExplorerTree.IsVisible = true;
+            }
+        }
 
         private void LoadDirectory(string path)
         {
@@ -285,31 +338,19 @@ private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
             return items;
         }
 
-        private void OnFileDoubleClick(object? sender, TappedEventArgs e)
-        {
-            if (e.Source is Control control && 
-                control.DataContext is FileSystemItem item && 
-                !item.IsDirectory)
-            {
-                OpenFileInEditor(item.FullPath);
-            }
-            e.Handled = true;
-        }
-
         private void AppendConsoleText(string text)
         {
-            // Ajoute du texte à la TextBox console en gardant un saut de ligne
             ConsoleOutput.Text += text + "\n";
-
-            // Place le caret à la fin du texte pour suivre le scroll
             ConsoleOutput.CaretIndex = ConsoleOutput.Text.Length;
 
-            // Scroll automatique vers le bas
-            var scrollViewer = ConsoleOutput.GetVisualDescendants()
+            var scrollViewers = ConsoleOutput.GetVisualDescendants()
                 .OfType<ScrollViewer>()
-                .FirstOrDefault();
+                .ToList();
 
-            scrollViewer?.ScrollToEnd();
+            if (scrollViewers.Count > 0)
+            {
+                scrollViewers[0].ScrollToEnd();
+            }
         }
 
         private void OnExecuteButtonClick(object? sender, RoutedEventArgs e)
@@ -328,10 +369,10 @@ private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
 
         private async void ExecuteCommandAsync()
         {
-            var command = ConsoleInput.Text.Trim();
-            if (string.IsNullOrWhiteSpace(command))
+            if (ConsoleInput == null || string.IsNullOrWhiteSpace(ConsoleInput.Text))
                 return;
 
+            var command = ConsoleInput.Text.Trim();
             ConsoleInput.Text = string.Empty;
 
             try
@@ -354,7 +395,6 @@ private ContextMenu? CreateTabContextMenu(string filePath, TextBox editor)
                         return;
                     }
 
-                    // Lecture asynchrone des sorties pour ne pas bloquer l’UI
                     var outputTask = process.StandardOutput.ReadToEndAsync();
                     var errorTask = process.StandardError.ReadToEndAsync();
 

@@ -1,10 +1,21 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:YourApp"
+        xmlns:local="clr-namespace:PulsarApp"
         xmlns:editeur="clr-namespace:Editeur"
-        x:Class="YourApp.MainWindow"
+        x:Class="PulsarApp.MainWindow"
         Title="Éditeur Neutron"
         Width="1200" Height="800">
+
+  <Window.Styles>
+    <Style Selector="Button">
+      <Setter Property="Padding" Value="5,2"/>
+      <Setter Property="MinWidth" Value="70"/>
+    </Style>
+    <Style Selector="ToggleButton">
+      <Setter Property="Padding" Value="5,2"/>
+      <Setter Property="MinWidth" Value="70"/>
+    </Style>
+  </Window.Styles>
 
   <DockPanel>
     <Menu DockPanel.Dock="Top">
@@ -70,11 +81,10 @@
       <Border Grid.Row="0" Grid.Column="2" x:Name="EditorPanel" BorderBrush="Gray" BorderThickness="1">
         <Grid>
           <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Barre d'outils -->
-            <RowDefinition Height="*"/> <!-- Contenu de l'éditeur -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
           </Grid.RowDefinitions>
         
-          <!-- Barre d'outils de l'éditeur -->
           <Border Grid.Row="0" Background="#EEE" Padding="5">
             <StackPanel Orientation="Horizontal" Spacing="5">
               <Button x:Name="SaveButton" Content="💾 Save" Click="SaveCurrentFile" 
@@ -84,13 +94,14 @@
             </StackPanel>
           </Border>
         
-          <!-- Contenu des onglets -->
           <TabControl x:Name="EditorTabs" Grid.Row="1">
             <TabItem Header="Bienvenue">
-              <TextBox Text="Ouvrez un fichier en double-cliquant dans l'explorateur" 
-                       IsReadOnly="True"
-                       Background="Transparent"
-                       BorderThickness="0"/>
+              <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <TextBlock Text="Ouvrez un fichier en double-cliquant dans l'explorateur"
+                           FontSize="16"
+                           Padding="10"
+                           TextWrapping="NoWrap" />
+              </ScrollViewer>
             </TabItem>
           </TabControl>
         </Grid>
@@ -101,7 +112,45 @@
 
       <!-- Game View -->
       <Border Grid.Row="0" Grid.Column="4" x:Name="GameViewPanel" BorderBrush="Gray" BorderThickness="1">
-        <editeur:GameViewHost/>
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          
+          <Border Grid.Row="0" Background="#EEE" Padding="5">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Button Content="Sélectionner" ToolTip.Tip="Mode sélection (V)" 
+                      Click="OnSelectToolClicked" x:Name="SelectToolButton"/>
+              <Button Content="Déplacer" ToolTip.Tip="Mode déplacement (M)" 
+                      Click="OnMoveToolClicked" x:Name="MoveToolButton"/>
+              
+              <Separator Margin="5,0"/>
+              
+              <Button Content="Dupliquer" ToolTip.Tip="Dupliquer l'objet (Ctrl+D)" 
+                      Click="OnDuplicateClicked"/>
+              <Button Content="Supprimer" ToolTip.Tip="Supprimer l'objet (Del)" 
+                      Click="OnDeleteClicked"/>
+              
+              <Separator Margin="5,0"/>
+              
+              <Button Content="Aligner X" ToolTip.Tip="Aligner sur l'axe X" 
+                      Click="OnAlignXClicked"/>
+              <Button Content="Aligner Y" ToolTip.Tip="Aligner sur l'axe Y" 
+                      Click="OnAlignYClicked"/>
+              
+              <Separator Margin="5,0"/>
+              
+              <ToggleButton Content="Grille" ToolTip.Tip="Afficher/Masquer la grille" 
+                            x:Name="GridToggle"/>
+              <TextBox Text="10" Width="40" ToolTip.Tip="Taille de la grille"/>
+              <ToggleButton Content="Snap" ToolTip.Tip="Activer/Désactiver le snap" 
+                            x:Name="SnapToggle" IsChecked="True"/>
+            </StackPanel>
+          </Border>
+          
+          <editeur:GameViewHost Grid.Row="1"/>
+        </Grid>
       </Border>
 
       <GridSplitter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Height="5" Background="Gray"
